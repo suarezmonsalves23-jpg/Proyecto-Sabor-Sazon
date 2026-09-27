@@ -1,0 +1,502 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from datetime import datetime
+# ============================================================
+# CLASE GESTIONCLIENTES
+# ============================================================
+class GestionClientes:
+    def __init__(
+        self,
+        identificacion,
+        nombre_completo,
+        genero,
+        tipo_menu,
+        numero_sesiones,
+        fecha_registro,
+        costo_sesion
+    ):
+        self.identificacion = identificacion
+        self.nombre_completo = nombre_completo
+        self.genero = genero
+        self.tipo_menu = tipo_menu
+        self.numero_sesiones = numero_sesiones
+        self.fecha_registro = fecha_registro
+        self.costo_sesion = costo_sesion
+    def calcular_costo_total(self):
+        return self.numero_sesiones * self.costo_sesion
+# ============================================================
+# VALORES DE LOS MENÚS
+# ============================================================
+PRECIOS_MENU = {
+    "Menú ejecutivo": 35000,
+    "Menú vegetariano": 28000,
+    "Menú degustación": 75000,
+    "Menú infantil": 20000,
+    "Menú gourmet": 95000
+}
+# ============================================================
+# FUNCIONES
+# ============================================================
+def validar_acceso():
+    """
+    Valida la contraseña de acceso.
+    La contraseña solicitada por el Anexo 1 es 1793.
+    """
+    password = entrada_password.get()
+    if password == "1793":
+        ventana_login.destroy()
+        mostrar_formulario()
+    else:
+        messagebox.showerror(
+            "Acceso denegado",
+            "La contraseña ingresada es incorrecta."
+        )
+def actualizar_precio(event=None):
+    """
+    Actualiza automáticamente el costo de la sesión
+    según el menú seleccionado.
+    """
+    menu = combo_menu.get()
+    if menu in PRECIOS_MENU:
+        precio = PRECIOS_MENU[menu]
+        entrada_costo.config(state="normal")
+        entrada_costo.delete(0, tk.END)
+        entrada_costo.insert(0, formatear_moneda(precio))
+        entrada_costo.config(state="readonly")
+def formatear_moneda(valor):
+    """
+    Convierte un número a formato de pesos colombianos.
+    """
+    return f"${valor:,.0f}".replace(",", ".")
+def guardar_registro():
+    """
+    Guarda la información del cliente en un objeto
+    de la clase GestionClientes.
+    """
+
+    try:
+        identificacion = entrada_identificacion.get().strip()
+        nombre = entrada_nombre.get().strip()
+        genero = combo_genero.get()
+        menu = combo_menu.get()
+        sesiones = entrada_sesiones.get().strip()
+        if not identificacion:
+            messagebox.showwarning(
+                "Dato requerido",
+                "Ingrese la identificación."
+            )
+            return
+        if not nombre:
+            messagebox.showwarning(
+                "Dato requerido",
+                "Ingrese el nombre completo."
+            )
+            return
+        if not genero:
+            messagebox.showwarning(
+                "Dato requerido",
+                "Seleccione el género."
+            )
+            return
+        if not menu:
+            messagebox.showwarning(
+                "Dato requerido",
+                "Seleccione el tipo de menú."
+            )
+            return
+        if not sesiones:
+            messagebox.showwarning(
+                "Dato requerido",
+                "Ingrese el número de sesiones."
+            )
+            return
+        sesiones = int(sesiones)
+        if sesiones <= 0:
+            messagebox.showwarning(
+                "Dato inválido",
+                "El número de sesiones debe ser mayor que cero."
+            )
+            return
+        costo = PRECIOS_MENU[menu]
+        fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        global cliente_actual
+        cliente_actual = GestionClientes(
+            identificacion,
+            nombre,
+            genero,
+            menu,
+            sesiones,
+            fecha,
+            costo
+        )
+        messagebox.showinfo(
+            "Registro guardado",
+            "Los datos del cliente fueron guardados correctamente."
+        )
+    except ValueError:
+        messagebox.showerror(
+            "Error",
+            "El número de sesiones debe ser un número entero."
+        )
+def mostrar_reporte():
+    """
+    Calcula el costo total y muestra el reporte.
+    """
+    global cliente_actual
+    if cliente_actual is None:
+        messagebox.showwarning(
+            "Sin registro",
+            "Primero debe guardar el registro del cliente."
+        )
+        return
+    total = cliente_actual.calcular_costo_total()
+    ventana_reporte = tk.Toplevel(ventana_principal)
+    ventana_reporte.title("Reporte - Sabor & Sazón")
+    ventana_reporte.geometry("600x520")
+    ventana_reporte.resizable(False, False)
+    titulo = tk.Label(
+        ventana_reporte,
+        text="SABOR & SAZÓN",
+        font=("Arial", 20, "bold")
+    )
+    titulo.pack(pady=15)
+    subtitulo = tk.Label(
+        ventana_reporte,
+        text="Reporte del servicio gastronómico",
+        font=("Arial", 12)
+    )
+    subtitulo.pack(pady=5)
+    marco = tk.Frame(ventana_reporte)
+    marco.pack(padx=30, pady=20, fill="both")
+
+    datos = [
+        ("Identificación:", cliente_actual.identificacion),
+        ("Nombre completo:", cliente_actual.nombre_completo),
+        ("Género:", cliente_actual.genero),
+        ("Tipo de menú:", cliente_actual.tipo_menu),
+        ("Número de sesiones:", str(cliente_actual.numero_sesiones)),
+        ("Fecha de registro:", cliente_actual.fecha_registro),
+        ("Costo por sesión:", formatear_moneda(
+            cliente_actual.costo_sesion
+        )),
+        ("COSTO TOTAL:", formatear_moneda(total))
+    ]
+    for i, (etiqueta, valor) in enumerate(datos):
+        tk.Label(
+            marco,
+            text=etiqueta,
+            font=("Arial", 11, "bold"),
+            anchor="w"
+        ).grid(
+            row=i,
+            column=0,
+            sticky="w",
+            padx=10,
+            pady=8
+        )
+
+        tk.Label(
+            marco,
+            text=valor,
+            font=("Arial", 11),
+            anchor="w"
+        ).grid(
+            row=i,
+            column=1,
+            sticky="w",
+            padx=10,
+            pady=8
+        )
+    tk.Button(
+        ventana_reporte,
+        text="Cerrar reporte",
+        command=ventana_reporte.destroy,
+        width=20
+    ).pack(pady=15)
+def limpiar_formulario():
+    """
+    Limpia los datos ingresados.
+    """
+    entrada_identificacion.delete(0, tk.END)
+    entrada_nombre.delete(0, tk.END)
+
+    combo_genero.set("")
+    combo_menu.set("")
+    entrada_sesiones.delete(0, tk.END)
+    entrada_costo.config(state="normal")
+    entrada_costo.delete(0, tk.END)
+    entrada_costo.config(state="readonly")
+
+def salir_aplicacion():
+    """
+    Confirma si el usuario desea cerrar la aplicación.
+    """
+    respuesta = messagebox.askyesno(
+        "Salir",
+        "¿Está seguro de que desea salir de la aplicación?"
+    )
+    if respuesta:
+        ventana_principal.destroy()
+
+# ============================================================
+# FORMULARIO PRINCIPAL
+# ============================================================
+def mostrar_formulario():
+
+    global ventana_principal
+    global entrada_identificacion
+    global entrada_nombre
+    global combo_genero
+    global combo_menu
+    global entrada_sesiones
+    global entrada_costo
+    ventana_principal = tk.Tk()
+    ventana_principal.title("Sabor & Sazón - Gestión de Clientes")
+    ventana_principal.geometry("700x650")
+    ventana_principal.resizable(False, False)
+    # --------------------------------------------------------
+    # TÍTULO
+    # --------------------------------------------------------
+    titulo = tk.Label(
+        ventana_principal,
+        text="SABOR & SAZÓN",
+        font=("Arial", 24, "bold")
+    )
+    titulo.pack(pady=20)
+    subtitulo = tk.Label(
+        ventana_principal,
+        text="Gestión de clientes y sesiones gastronómicas",
+        font=("Arial", 12)
+    )
+    subtitulo.pack(pady=5)
+    # --------------------------------------------------------
+    # MARCO DEL FORMULARIO
+    # --------------------------------------------------------
+    formulario = tk.Frame(ventana_principal)
+    formulario.pack(padx=40, pady=20)
+    # Identificación
+    tk.Label(
+        formulario,
+        text="Identificación:",
+        font=("Arial", 11, "bold")
+    ).grid(row=0, column=0, sticky="w", pady=10)
+    entrada_identificacion = tk.Entry(
+        formulario,
+        width=40
+    )
+    entrada_identificacion.grid(
+        row=0,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # Nombre
+    tk.Label(
+        formulario,
+        text="Nombre completo:",
+        font=("Arial", 11, "bold")
+    ).grid(row=1, column=0, sticky="w", pady=10)
+    entrada_nombre = tk.Entry(
+        formulario,
+        width=40
+    )
+    entrada_nombre.grid(
+        row=1,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # Género
+    tk.Label(
+        formulario,
+        text="Género:",
+        font=("Arial", 11, "bold")
+    ).grid(row=2, column=0, sticky="w", pady=10)
+    combo_genero = ttk.Combobox(
+        formulario,
+        values=[
+            "Masculino",
+            "Femenino"
+        ],
+        state="readonly",
+        width=37
+    )
+    combo_genero.grid(
+        row=2,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # Tipo de menú
+    tk.Label(
+        formulario,
+        text="Tipo de menú:",
+        font=("Arial", 11, "bold")
+    ).grid(row=3, column=0, sticky="w", pady=10)
+    combo_menu = ttk.Combobox(
+        formulario,
+        values=list(PRECIOS_MENU.keys()),
+        state="readonly",
+        width=37
+    )
+    combo_menu.grid(
+        row=3,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    combo_menu.bind(
+        "<<ComboboxSelected>>",
+        actualizar_precio
+    )
+    # Número de sesiones
+    tk.Label(
+        formulario,
+        text="Número de sesiones:",
+        font=("Arial", 11, "bold")
+    ).grid(row=4, column=0, sticky="w", pady=10)
+    entrada_sesiones = tk.Entry(
+        formulario,
+        width=40
+    )
+    entrada_sesiones.grid(
+        row=4,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # Fecha
+    tk.Label(
+        formulario,
+        text="Fecha de registro:",
+        font=("Arial", 11, "bold")
+    ).grid(row=5, column=0, sticky="w", pady=10)
+    fecha_actual = datetime.now().strftime(
+        "%d/%m/%Y %H:%M:%S"
+    )
+    entrada_fecha = tk.Entry(
+        formulario,
+        width=40
+    )
+    entrada_fecha.insert(0, fecha_actual)
+    entrada_fecha.config(state="readonly")
+
+    entrada_fecha.grid(
+        row=5,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # Costo por sesión
+    tk.Label(
+        formulario,
+        text="Costo por sesión:",
+        font=("Arial", 11, "bold")
+    ).grid(row=6, column=0, sticky="w", pady=10)
+    entrada_costo = tk.Entry(
+        formulario,
+        width=40
+    )
+    entrada_costo.config(state="readonly")
+    entrada_costo.grid(
+        row=6,
+        column=1,
+        pady=10,
+        padx=10
+    )
+    # --------------------------------------------------------
+    # BOTONES
+    # --------------------------------------------------------
+    botones = tk.Frame(ventana_principal)
+    botones.pack(pady=20)
+    tk.Button(
+        botones,
+        text="Guardar Registro",
+        width=22,
+        command=guardar_registro
+    ).grid(
+        row=0,
+        column=0,
+        padx=8,
+        pady=8
+    )
+    tk.Button(
+        botones,
+        text="Calcular Costo / Mostrar Reporte",
+        width=28,
+        command=mostrar_reporte
+    ).grid(
+        row=0,
+        column=1,
+        padx=8,
+        pady=8
+    )
+    tk.Button(
+        botones,
+        text="Limpiar",
+        width=22,
+        command=limpiar_formulario
+    ).grid(
+        row=1,
+        column=0,
+        padx=8,
+        pady=8
+    )
+    tk.Button(
+        botones,
+        text="Salir de la Aplicación",
+        width=28,
+        command=salir_aplicacion
+    ).grid(
+        row=1,
+        column=1,
+        padx=8,
+        pady=8
+    )
+    ventana_principal.mainloop()
+# ============================================================
+# VARIABLES GLOBALES
+# ============================================================
+cliente_actual = None
+# ============================================================
+# VENTANA DE LOGIN
+# ============================================================
+ventana_login = tk.Tk()
+ventana_login.title("Acceso - Sabor & Sazón")
+ventana_login.geometry("450x350")
+ventana_login.resizable(False, False)
+titulo_login = tk.Label(
+    ventana_login,
+    text="SABOR & SAZÓN",
+    font=("Arial", 24, "bold")
+)
+titulo_login.pack(pady=30)
+tk.Label(
+    ventana_login,
+    text="Sistema de Gestión de Clientes",
+    font=("Arial", 12)
+).pack(pady=5)
+tk.Label(
+    ventana_login,
+    text="Contraseña:",
+    font=("Arial", 11, "bold")
+).pack(pady=(25, 5))
+entrada_password = tk.Entry(
+    ventana_login,
+    width=25,
+    show="*"
+)
+entrada_password.pack(pady=5)
+tk.Button(
+    ventana_login,
+    text="Ingresar",
+    width=20,
+    command=validar_acceso
+).pack(pady=20)
+tk.Label(
+    ventana_login,
+    text="Acceso protegido",
+    font=("Arial", 9)
+).pack(pady=5)
+ventana_login.mainloop()
+
